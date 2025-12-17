@@ -1,0 +1,47 @@
+# Core ML Libraries
+scikit-learn
+pandas
+numpy
+matplotlib
+seaborn
+
+# API Framework
+fastapi
+uvicorn[standard]
+pydantic
+python-multipart
+requests
+
+# Frontend
+streamlit
+plotly
+
+# Workflow Orchestration
+prefect
+
+# Model Registry & Tracking
+mlflow
+optuna
+
+# Data Drift & Monitoring
+scipy
+evidently
+
+# Testing
+pytest
+pytest-cov
+httpx
+
+# Data Storage
+pyarrow
+fastparquet
+
+# Utilities
+python-dotenv
+joblib
+python-json-logger
+
+# Code Quality
+black
+flake8
+isort

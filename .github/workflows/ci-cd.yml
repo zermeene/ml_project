@@ -1,0 +1,207 @@
+name: Air Quality MLOps CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 black isort
+    
+    - name: Run Black (code formatting)
+      run: |
+        black --check src/ tests/
+    
+    - name: Run isort (import sorting)
+      run: |
+        isort --check-only src/ tests/
+    
+    - name: Run Flake8 (linting)
+      run: |
+        flake8 src/ tests/ --max-line-length=100 --ignore=E501,W503
+
+  data-validation:
+    name: Data Quality & Validation Tests
+    runs-on: ubuntu-latest
+    needs: code-quality
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Generate test data
+      run: |
+        cd data
+        python generate_data.py
+    
+    - name: Run data quality tests
+      run: |
+        pytest tests/test_data_quality.py -v --tb=short
+
+  model-training-testing:
+    name: ML Model Training & Testing
+    runs-on: ubuntu-latest
+    needs: data-validation
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Generate dataset
+      run: |
+        cd data
+        python generate_data.py
+    
+    - name: Run Prefect pipeline
+      run: |
+        cd src
+        python prefect_pipeline.py
+    
+    - name: Run model tests
+      run: |
+        pytest tests/test_models.py -v --tb=short --cov=src --cov-report=xml
+    
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+    
+    - name: Save trained models as artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: trained-models
+        path: models/
+
+  api-testing:
+    name: API Integration Tests
+    runs-on: ubuntu-latest
+    needs: model-training-testing
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Generate dataset
+      run: |
+        cd data
+        python generate_data.py
+    
+    - name: Download trained models
+      uses: actions/download-artifact@v3
+      with:
+        name: trained-models
+        path: models/
+    
+    - name: Run API tests
+      run: |
+        pytest tests/test_api.py -v --tb=short
+
+  docker-build:
+    name: Docker Build & Push
+    runs-on: ubuntu-latest
+    needs: api-testing
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    
+    - name: Log in to Docker Hub (optional)
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+    
+    - name: Build Docker image
+      run: |
+        docker build -t air-quality-api:latest .
+    
+    - name: Test Docker container
+      run: |
+        docker run -d -p 8000:8000 --name test-api air-quality-api:latest
+        sleep 10
+        curl http://localhost:8000/health || exit 1
+        docker stop test-api
+    
+    - name: Push to Docker Hub (only on main branch)
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        docker tag air-quality-api:latest ${{ secrets.DOCKER_USERNAME }}/air-quality-api:latest
+        docker push ${{ secrets.DOCKER_USERNAME }}/air-quality-api:latest
+
+  deployment:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: docker-build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Deploy notification
+      run: |
+        echo "🚀 Deploying to production environment..."
+        echo "✅ Deployment completed successfully!"
+        # Add your deployment commands here
+        # Example: kubectl apply -f k8s/deployment.yaml
+        # Or: aws ecs update-service --cluster my-cluster --service my-service
+    
+    - name: Create deployment tag
+      run: |
+        git config --global user.email "ci@github.com"
+        git config --global user.name "GitHub CI"
+        git tag -a "deploy-$(date +'%Y%m%d-%H%M%S')" -m "Automated deployment"
