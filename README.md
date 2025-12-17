@@ -191,7 +191,7 @@ GitHub Actions workflow includes:
 
 ## 👨‍💻 Author
 
-**Bingbang** - BS AI, GIKI
+**Zermine Wajid** - BS AI, GIKI
 AI321L Machine Learning - MLOps Project
 
 ---
