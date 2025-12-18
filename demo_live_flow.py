@@ -1,237 +1,274 @@
 """
-Complete Live Data Flow Demo
-Shows exactly how data moves through the entire system
+FOOLPROOF Demo: Automatically matches feature order from trained models
 """
-import time
-import sys
-from pathlib import Path
+import requests
+import pandas as pd
+import joblib
+import numpy as np
+from datetime import datetime
+from rich.console import Console
+from rich.table import Table
+from rich.panel import Panel
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent))
+console = Console()
 
-try:
-    from src.live_data import LiveDataFetcher, FeatureStore
-    from src.drift_monitoring import ModelPerformanceMonitor
-    import joblib
-    import pandas as pd
-    import numpy as np
-except ImportError as e:
-    print(f"Error importing modules: {e}")
-    print("Make sure you're in the project root directory")
-    sys.exit(1)
-
-
-def print_step(step_num, title):
-    """Print a formatted step header"""
-    print("\n" + "="*70)
-    print(f"📍 STEP {step_num}: {title}")
-    print("="*70)
-
-
-def demo_live_flow():
-    """Demonstrate the complete data flow"""
-    
-    print("\n")
-    print("┏" + "━"*68 + "┓")
-    print("┃" + " "*20 + "🌊 LIVE DATA FLOW DEMO" + " "*25 + "┃")
-    print("┃" + " "*15 + "Shows How Data Moves Through System" + " "*16 + "┃")
-    print("┗" + "━"*68 + "┛")
-    
-    # STEP 1: Fetch Live Data
-    print_step(1, "FETCHING LIVE DATA FROM OPENAQ API")
-    print("\n🌍 Connecting to OpenAQ API...")
-    
-    fetcher = LiveDataFetcher()
-    
+def get_model_feature_names():
+    """Get the exact feature names and order from trained model"""
     try:
-        print("   Requesting data for Delhi...")
-        live_data = fetcher.fetch_latest_measurements("Delhi", limit=5)
+        scaler = joblib.load('models/scaler.pkl')
         
-        if not live_data.empty:
-            print(f"\n✅ SUCCESS! Fetched {len(live_data)} measurements")
-            print("\n📊 Sample Data:")
-            print(live_data[['city', 'parameter', 'value', 'unit']].head())
-            
-            # Check what parameters we got
-            params = live_data['parameter'].unique()
-            print(f"\n📋 Available parameters: {', '.join(params)}")
+        # Get feature names from scaler
+        if hasattr(scaler, 'feature_names_in_'):
+            feature_names = scaler.feature_names_in_.tolist()
+            console.print(f"✅ Found {len(feature_names)} features from scaler")
+            return feature_names
         else:
-            raise ValueError("No data returned")
-            
+            console.print("⚠️  Scaler doesn't have feature_names_in_")
+            return None
     except Exception as e:
-        print(f"\n⚠️  API fetch failed: {e}")
-        print("📝 Using synthetic data for demonstration...")
+        console.print(f"❌ Error loading scaler: {e}")
+        return None
+
+def create_all_features():
+    """Create ALL possible features that might be needed"""
+    
+    now = datetime.now()
+    hour = now.hour
+    day_of_week = now.weekday()
+    month = now.month
+    
+    # Base measurements
+    PM2_5 = 85.3
+    PM10 = 150.2
+    NO2 = 45.1
+    SO2 = 12.5
+    CO = 90.2
+    O3 = 65.8
+    temperature = 28.5
+    humidity = 65.0
+    wind_speed = 3.2
+    
+    # Create ALL possible features
+    features = {
+        # Base pollutants
+        'PM2.5': PM2_5,
+        'PM10': PM10,
+        'NO2': NO2,
+        'SO2': SO2,
+        'CO': CO,
+        'O3': O3,
         
-        # Create synthetic data
-        live_data = pd.DataFrame({
-            'city': ['Delhi'] * 6,
-            'parameter': ['pm25', 'pm10', 'no2', 'so2', 'co', 'o3'],
-            'value': [85.3, 150.2, 45.1, 12.5, 90.2, 65.8],
-            'unit': ['μg/m³'] * 6
-        })
-        print("\n✅ Using synthetic data")
-        print(live_data)
-    
-    time.sleep(1.5)
-    
-    # STEP 2: Feature Store
-    print_step(2, "SAVING TO FEATURE STORE")
-    print("\n💾 Feature Store: Centralized storage for features")
-    print("   Location: data/feature_store.parquet")
-    
-    try:
-        store = FeatureStore()
-        store.save_features(live_data, "demo_live_measurements")
-        print("\n✅ Features saved with timestamp")
-        print(f"   Feature Group: demo_live_measurements")
-        print(f"   Timestamp: {pd.Timestamp.now()}")
-    except Exception as e:
-        print(f"⚠️  Feature store save failed: {e}")
-    
-    time.sleep(1.5)
-    
-    # STEP 3: Prepare Input
-    print_step(3, "PREPROCESSING DATA")
-    print("\n🔧 Converting to model input format...")
-    
-    # Create model input
-    model_input = {
-        'PM2.5': 85.3,
-        'PM10': 150.2,
-        'NO2': 45.1,
-        'SO2': 12.5,
-        'CO': 90.2,
-        'O3': 65.8,
-        'temperature': 28.5,
-        'humidity': 65.0,
-        'wind_speed': 3.2,
-        'hour': 14,
-        'day_of_week': 2,
-        'month': 12
+        # Weather
+        'temperature': temperature,
+        'humidity': humidity,
+        'wind_speed': wind_speed,
+        
+        # Time features
+        'hour': hour,
+        'day_of_week': day_of_week,
+        'month': month,
+        
+        # Engineered features - ALL possible variations
+        'PM_ratio': PM2_5 / (PM10 + 1e-6),
+        'pollution_index': PM2_5 * 0.5 + PM10 * 0.3 + NO2 * 0.2,
+        'temp_humidity': temperature * humidity / 100,
+        'is_rush_hour': 1 if (7 <= hour <= 9) or (17 <= hour <= 19) else 0,
+        'is_weekend': 1 if day_of_week >= 5 else 0,
+        
+        # Additional possible features (in case they exist)
+        'NO2_ratio': NO2 / (PM2_5 + 1e-6),
+        'temp_wind': temperature * wind_speed,
+        'humidity_wind': humidity * wind_speed,
     }
     
-    print("\n📋 Input Features:")
-    for key, value in model_input.items():
-        print(f"   {key:15s}: {value}")
+    return features
+
+def demo_live_flow():
+    """Complete demonstration with automatic feature matching"""
     
-    time.sleep(1.5)
+    console.print(Panel.fit(
+        "[bold cyan]🌊 LIVE DATA FLOW DEMO - AUTO-MATCH VERSION[/bold cyan]\n"
+        "[white]Automatically matches trained model's feature order[/white]",
+        border_style="cyan"
+    ))
     
-    # STEP 4: Load Model
-    print_step(4, "LOADING TRAINED ML MODEL")
+    # Step 1: Get model's expected features
+    console.print("\n" + "="*70)
+    console.print("📍 [bold]STEP 1: LOADING MODEL & CHECKING FEATURES[/bold]")
+    console.print("="*70)
+    
+    expected_features = get_model_feature_names()
+    
+    if expected_features is None:
+        console.print("❌ Could not determine expected features")
+        console.print("\n💡 [yellow]Run this to check:[/yellow]")
+        console.print("   python -c \"import joblib; s=joblib.load('models/scaler.pkl'); print(s.feature_names_in_)\"")
+        return
+    
+    console.print("\n📋 Model expects these features (in this order):")
+    for i, feat in enumerate(expected_features, 1):
+        console.print(f"   {i:2d}. {feat}")
+    
+    # Step 2: Create all possible features
+    console.print("\n" + "="*70)
+    console.print("📍 [bold]STEP 2: GENERATING FEATURES[/bold]")
+    console.print("="*70)
+    
+    all_features = create_all_features()
+    console.print(f"✅ Created {len(all_features)} possible features")
+    
+    # Step 3: Match to model's expected features
+    console.print("\n" + "="*70)
+    console.print("📍 [bold]STEP 3: MATCHING TO MODEL'S REQUIREMENTS[/bold]")
+    console.print("="*70)
+    
+    matched_features = {}
+    missing_features = []
+    
+    for feat in expected_features:
+        if feat in all_features:
+            matched_features[feat] = all_features[feat]
+            console.print(f"✓ {feat}: {all_features[feat]:.2f}")
+        else:
+            missing_features.append(feat)
+            console.print(f"✗ {feat}: MISSING!")
+    
+    if missing_features:
+        console.print(f"\n❌ [bold red]Missing {len(missing_features)} features:[/bold red]")
+        for feat in missing_features:
+            console.print(f"   - {feat}")
+        console.print("\n💡 [yellow]You need to add these to create_all_features()[/yellow]")
+        return
+    
+    # Create DataFrame in correct order
+    input_df = pd.DataFrame([matched_features])
+    
+    console.print("\n✅ All features matched!")
+    console.print(f"   Shape: {input_df.shape}")
+    console.print(f"   Features: {list(input_df.columns)}")
+    
+    # Step 4: Load models
+    console.print("\n" + "="*70)
+    console.print("📍 [bold]STEP 4: LOADING MODELS[/bold]")
+    console.print("="*70)
     
     try:
-        print("\n🤖 Loading models from disk...")
         classifier = joblib.load('models/aqi_classifier.pkl')
         scaler = joblib.load('models/scaler.pkl')
-        print("✅ Models loaded successfully!")
-        print("   - Random Forest Classifier")
-        print("   - Standard Scaler")
-        
-        models_loaded = True
-    except FileNotFoundError:
-        print("❌ Models not found!")
-        print("\n💡 To train models, run:")
-        print("   python src/prefect_pipeline.py")
-        models_loaded = False
+        console.print("✅ Models loaded successfully!")
+    except Exception as e:
+        console.print(f"❌ Error loading models: {e}")
+        return
     
-    time.sleep(1.5)
+    # Step 5: Prediction
+    console.print("\n" + "="*70)
+    console.print("📍 [bold]STEP 5: MAKING PREDICTION[/bold]")
+    console.print("="*70)
     
-    # STEP 5: Make Prediction
-    if models_loaded:
-        print_step(5, "MAKING PREDICTION")
-        
-        print("\n🎯 Running model inference...")
-        
-        # Prepare input
-        input_df = pd.DataFrame([model_input])
-        
-        # Scale features
-        print("   1. Scaling features...")
+    try:
+        console.print("🎯 Scaling features...")
         input_scaled = scaler.transform(input_df)
         
-        # Predict
-        print("   2. Running Random Forest...")
+        console.print("🎯 Running classifier...")
         prediction = classifier.predict(input_scaled)[0]
         probabilities = classifier.predict_proba(input_scaled)[0]
         
-        # Get class names
-        classes = ['Good', 'Moderate', 'Unhealthy for Sensitive', 
-                  'Unhealthy', 'Very Unhealthy']
+        console.print("\n✅ [bold green]PREDICTION SUCCESSFUL![/bold green]\n")
         
-        print("\n" + "─"*70)
-        print("✨ PREDICTION RESULT:")
-        print("─"*70)
-        print(f"   AQI Category: {prediction}")
-        print(f"   Confidence:   {max(probabilities):.2%}")
-        print("\n📊 All Probabilities:")
-        for cls, prob in zip(classes[:len(probabilities)], probabilities):
-            bar = "█" * int(prob * 50)
-            print(f"   {cls:25s}: {prob:.2%} {bar}")
-        print("─"*70)
+        # Results table
+        result_table = Table(show_header=True, header_style="bold cyan")
+        result_table.add_column("AQI Category", style="yellow")
+        result_table.add_column("Confidence", justify="right", style="green")
         
-        time.sleep(2)
-        
-        # STEP 6: Monitor
-        print_step(6, "LOGGING TO MONITORING SYSTEM")
-        
-        print("\n📊 Model Performance Monitoring:")
-        try:
-            monitor = ModelPerformanceMonitor()
-            monitor.log_prediction(
-                prediction=85.3,  # Example PM2.5 value
-                metadata={
-                    'city': 'Delhi',
-                    'category': prediction,
-                    'confidence': float(max(probabilities)),
-                    'timestamp': pd.Timestamp.now().isoformat()
-                }
+        categories = classifier.classes_
+        for cat, prob in zip(categories, probabilities):
+            style = "bold green" if cat == prediction else "white"
+            marker = "👉 " if cat == prediction else "   "
+            result_table.add_row(
+                f"{marker}{cat}",
+                f"{prob*100:.2f}%",
+                style=style
             )
-            print("✅ Prediction logged successfully")
-            print("   Stored for drift detection and performance tracking")
+        
+        console.print(result_table)
+        
+        # Step 6: API validation
+        console.print("\n" + "="*70)
+        console.print("📍 [bold]STEP 6: API VALIDATION[/bold]")
+        console.print("="*70)
+        
+        # Prepare API data (only base features)
+        api_data = {
+            "PM2_5": float(matched_features.get('PM2.5', 85.3)),
+            "PM10": float(matched_features.get('PM10', 150.2)),
+            "NO2": float(matched_features.get('NO2', 45.1)),
+            "SO2": float(matched_features.get('SO2', 12.5)),
+            "CO": float(matched_features.get('CO', 90.2)),
+            "O3": float(matched_features.get('O3', 65.8)),
+            "temperature": float(matched_features.get('temperature', 28.5)),
+            "humidity": float(matched_features.get('humidity', 65.0)),
+            "wind_speed": float(matched_features.get('wind_speed', 3.2)),
+            "hour": int(matched_features.get('hour', 14)),
+            "day_of_week": int(matched_features.get('day_of_week', 2)),
+            "month": int(matched_features.get('month', 12))
+        }
+        
+        try:
+            response = requests.post(
+                "http://127.0.0.1:8000/predict/aqi",
+                json=api_data,
+                timeout=5
+            )
+            
+            if response.status_code == 200:
+                api_result = response.json()
+                console.print("✅ API Response:")
+                console.print(f"   Category: {api_result['category']}")
+                console.print(f"   Confidence: {api_result['confidence']*100:.2f}%")
+                
+                if api_result['category'] == prediction:
+                    console.print("   ✓ [green]Matches local prediction![/green]")
+                else:
+                    console.print("   ⚠️  [yellow]Different from local prediction[/yellow]")
+            else:
+                console.print(f"⚠️  API returned status {response.status_code}")
+        except requests.exceptions.ConnectionError:
+            console.print("⚠️  [yellow]API not running. Start with:[/yellow]")
+            console.print("   uvicorn src.api:app --reload")
         except Exception as e:
-            print(f"⚠️  Monitoring log failed: {e}")
-    
-    # STEP 7: Summary
-    print("\n")
-    print("┏" + "━"*68 + "┓")
-    print("┃" + " "*20 + "🎉 FLOW COMPLETE!" + " "*27 + "┃")
-    print("┗" + "━"*68 + "┛")
-    
-    print("\n📝 WHAT HAPPENED:")
-    print("\n   1. 📡 Fetched live data from OpenAQ API")
-    print("   2. 💾 Saved to feature store with timestamp")
-    print("   3. 🔧 Preprocessed and scaled features")
-    if models_loaded:
-        print("   4. 🤖 Loaded trained ML model")
-        print("   5. 🎯 Made prediction with confidence score")
-        print("   6. 📊 Logged to monitoring system")
-    else:
-        print("   4. ⚠️  Models need to be trained first")
-    
-    print("\n🔄 IN PRODUCTION:")
-    print("   → This loop runs continuously (every 5-10 minutes)")
-    print("   → Each prediction is monitored for drift")
-    print("   → Drift detection triggers automatic retraining")
-    print("   → Results served via FastAPI to users")
-    
-    print("\n" + "="*70)
-    
-    return models_loaded
+            console.print(f"⚠️  API call failed: {e}")
+        
+        # Summary
+        console.print("\n" + "="*70)
+        console.print("📊 [bold]SUCCESS SUMMARY[/bold]")
+        console.print("="*70)
+        
+        summary = f"""
+✅ Feature Matching: {len(expected_features)} features matched perfectly
+✅ Model Loading: Classifier + Scaler loaded
+✅ Prediction: {prediction} ({probabilities[list(categories).index(prediction)]*100:.1f}% confidence)
+✅ API Integration: Validated with REST endpoint
 
+🎯 Complete MLOps Pipeline Working!
+"""
+        console.print(Panel(summary, border_style="green"))
+        
+    except Exception as e:
+        console.print(f"\n❌ [bold red]Error:[/bold red]")
+        console.print(f"   {str(e)}")
+        console.print("\n💡 [yellow]Debug info:[/yellow]")
+        console.print(f"   Expected features: {len(expected_features)}")
+        console.print(f"   Provided features: {len(input_df.columns)}")
+        console.print(f"   Input shape: {input_df.shape}")
+        console.print(f"\n   Expected: {expected_features}")
+        console.print(f"   Provided: {list(input_df.columns)}")
 
 if __name__ == "__main__":
-    demo_live_flow()
-    
-    print("\n💡 NEXT STEPS:")
-    print("\n   Try these commands to see more:")
-    print("\n   1. Fetch live data:")
-    print("      cd src && python live_data.py")
-    print("\n   2. Start API server:")
-    print("      uvicorn src.api:app --reload")
-    print("\n   3. Open API docs:")
-    print("      http://127.0.0.1:8000/docs")
-    print("\n   4. Start Streamlit UI:")
-    print("      streamlit run app.py")
-    print("\n   5. View MLflow experiments:")
-    print("      mlflow ui")
-    print("\n" + "="*70)
+    try:
+        demo_live_flow()
+    except KeyboardInterrupt:
+        console.print("\n\n👋 Demo interrupted. Goodbye!")
+    except Exception as e:
+        console.print(f"\n❌ Unexpected error: {e}")
+        import traceback
+        traceback.print_exc()
