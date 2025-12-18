@@ -180,8 +180,12 @@ class ModelRegistry:
 
 def register_all_models():
     """Register all trained models with MLflow"""
-    from config import (CLASSIFIER_MODEL_PATH, CLASSIFIER_PARAMS,
-                        REGRESSOR_MODEL_PATH, REGRESSOR_PARAMS)
+    from config import (
+        CLASSIFIER_MODEL_PATH,
+        CLASSIFIER_PARAMS,
+        REGRESSOR_MODEL_PATH,
+        REGRESSOR_PARAMS,
+    )
 
     registry = ModelRegistry()
 

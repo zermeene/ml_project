@@ -16,8 +16,15 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 
-from config import (ALL_FEATURES, CLASSIFICATION_TARGET, DATA_FILE,
-                    RANDOM_STATE, REGRESSION_TARGET, SCALER_PATH, TEST_SIZE)
+from config import (
+    ALL_FEATURES,
+    CLASSIFICATION_TARGET,
+    DATA_FILE,
+    RANDOM_STATE,
+    REGRESSION_TARGET,
+    SCALER_PATH,
+    TEST_SIZE,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

@@ -16,9 +16,15 @@ from pydantic import BaseModel, Field
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 
-from config import (API_DESCRIPTION, API_TITLE, API_VERSION,
-                    CLASSIFIER_MODEL_PATH, CLUSTERING_MODEL_PATH,
-                    REGRESSOR_MODEL_PATH, SCALER_PATH)
+from config import (
+    API_DESCRIPTION,
+    API_TITLE,
+    API_VERSION,
+    CLASSIFIER_MODEL_PATH,
+    CLUSTERING_MODEL_PATH,
+    REGRESSOR_MODEL_PATH,
+    SCALER_PATH,
+)
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)

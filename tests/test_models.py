@@ -11,8 +11,7 @@ import pytest
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from config import (MIN_CLASSIFIER_ACCURACY, MIN_CLUSTERING_SILHOUETTE,
-                    MIN_REGRESSOR_R2)
+from config import MIN_CLASSIFIER_ACCURACY, MIN_CLUSTERING_SILHOUETTE, MIN_REGRESSOR_R2
 from models import AQIClassifier, CityClustering, PM25Regressor
 from preprocessing import DataPreprocessor
 

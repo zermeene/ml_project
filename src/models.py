@@ -12,16 +12,28 @@ import numpy as np
 import seaborn as sns
 from sklearn.cluster import KMeans
 from sklearn.ensemble import GradientBoostingRegressor, RandomForestClassifier
-from sklearn.metrics import (accuracy_score, classification_report,
-                             confusion_matrix, mean_absolute_error,
-                             mean_squared_error, r2_score, silhouette_score)
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    confusion_matrix,
+    mean_absolute_error,
+    mean_squared_error,
+    r2_score,
+    silhouette_score,
+)
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 
-from config import (CLASSIFIER_MODEL_PATH, CLASSIFIER_PARAMS,
-                    CLUSTERING_MODEL_PATH, MODEL_DIR, N_CLUSTERS,
-                    REGRESSOR_MODEL_PATH, REGRESSOR_PARAMS)
+from config import (
+    CLASSIFIER_MODEL_PATH,
+    CLASSIFIER_PARAMS,
+    CLUSTERING_MODEL_PATH,
+    MODEL_DIR,
+    N_CLUSTERS,
+    REGRESSOR_MODEL_PATH,
+    REGRESSOR_PARAMS,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
