@@ -1,6 +1,7 @@
 """
 FastAPI application for Air Quality Intelligence System
 """
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from typing import List, Dict, Optional
@@ -11,13 +12,18 @@ from datetime import datetime
 
 import sys
 from pathlib import Path
+
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 
 from config import (
-    API_TITLE, API_VERSION, API_DESCRIPTION,
-    CLASSIFIER_MODEL_PATH, REGRESSOR_MODEL_PATH, 
-    CLUSTERING_MODEL_PATH, SCALER_PATH
+    API_TITLE,
+    API_VERSION,
+    API_DESCRIPTION,
+    CLASSIFIER_MODEL_PATH,
+    REGRESSOR_MODEL_PATH,
+    CLUSTERING_MODEL_PATH,
+    SCALER_PATH,
 )
 
 # Setup logging
@@ -25,11 +31,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
-app = FastAPI(
-    title=API_TITLE,
-    version=API_VERSION,
-    description=API_DESCRIPTION
-)
+app = FastAPI(title=API_TITLE, version=API_VERSION, description=API_DESCRIPTION)
 
 # Global model storage
 models = {}
@@ -37,6 +39,7 @@ models = {}
 
 class AirQualityInput(BaseModel):
     """Input schema for air quality prediction"""
+
     PM2_5: float = Field(..., ge=0, le=500, description="PM2.5 concentration (μg/m³)")
     PM10: float = Field(..., ge=0, le=600, description="PM10 concentration (μg/m³)")
     NO2: float = Field(..., ge=0, le=400, description="NO2 concentration (μg/m³)")
@@ -49,7 +52,7 @@ class AirQualityInput(BaseModel):
     hour: int = Field(..., ge=0, le=23, description="Hour of day (0-23)")
     day_of_week: int = Field(..., ge=0, le=6, description="Day of week (0=Monday)")
     month: int = Field(..., ge=1, le=12, description="Month (1-12)")
-    
+
     class Config:
         schema_extra = {
             "example": {
@@ -64,13 +67,14 @@ class AirQualityInput(BaseModel):
                 "wind_speed": 3.2,
                 "hour": 14,
                 "day_of_week": 2,
-                "month": 6
+                "month": 6,
             }
         }
 
 
 class PM25PredictionInput(BaseModel):
     """Input schema for PM2.5 regression prediction"""
+
     NO2: float = Field(..., ge=0, le=400)
     SO2: float = Field(..., ge=0, le=300)
     CO: float = Field(..., ge=0, le=500)
@@ -81,7 +85,7 @@ class PM25PredictionInput(BaseModel):
     hour: int = Field(..., ge=0, le=23)
     day_of_week: int = Field(..., ge=0, le=6)
     month: int = Field(..., ge=1, le=12)
-    
+
     class Config:
         schema_extra = {
             "example": {
@@ -94,13 +98,14 @@ class PM25PredictionInput(BaseModel):
                 "wind_speed": 3.2,
                 "hour": 14,
                 "day_of_week": 2,
-                "month": 6
+                "month": 6,
             }
         }
 
 
 class ClassificationResponse(BaseModel):
     """Response schema for AQI classification"""
+
     aqi_category: str
     confidence: float
     probabilities: Dict[str, float]
@@ -109,6 +114,7 @@ class ClassificationResponse(BaseModel):
 
 class RegressionResponse(BaseModel):
     """Response schema for PM2.5 prediction"""
+
     predicted_pm25: float
     unit: str = "μg/m³"
     timestamp: str
@@ -116,6 +122,7 @@ class RegressionResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     """Health check response"""
+
     status: str
     models_loaded: Dict[str, bool]
     timestamp: str
@@ -126,10 +133,10 @@ async def load_models():
     """Load all models on startup"""
     try:
         logger.info("Loading models...")
-        models['classifier'] = joblib.load(CLASSIFIER_MODEL_PATH)
-        models['regressor'] = joblib.load(REGRESSOR_MODEL_PATH)
-        models['clustering'] = joblib.load(CLUSTERING_MODEL_PATH)
-        models['scaler'] = joblib.load(SCALER_PATH)
+        models["classifier"] = joblib.load(CLASSIFIER_MODEL_PATH)
+        models["regressor"] = joblib.load(REGRESSOR_MODEL_PATH)
+        models["clustering"] = joblib.load(CLUSTERING_MODEL_PATH)
+        models["scaler"] = joblib.load(SCALER_PATH)
         logger.info("✅ All models loaded successfully")
     except Exception as e:
         logger.error(f"Error loading models: {str(e)}")
@@ -146,8 +153,8 @@ async def root():
             "docs": "/docs",
             "health": "/health",
             "predict_aqi": "/predict/aqi",
-            "predict_pm25": "/predict/pm25"
-        }
+            "predict_pm25": "/predict/pm25",
+        },
     }
 
 
@@ -158,13 +165,13 @@ async def health_check():
         "classifier": "classifier" in models,
         "regressor": "regressor" in models,
         "clustering": "clustering" in models,
-        "scaler": "scaler" in models
+        "scaler": "scaler" in models,
     }
-    
+
     return {
         "status": "healthy" if all(models_status.values()) else "unhealthy",
         "models_loaded": models_status,
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now().isoformat(),
     }
 
 
@@ -172,43 +179,64 @@ async def health_check():
 async def predict_aqi_category(data: AirQualityInput):
     """
     Predict Air Quality Index (AQI) category
-    
+
     Returns one of: Good, Moderate, Unhealthy for Sensitive, Unhealthy, Very Unhealthy
     """
     try:
         # Prepare features
-        features = np.array([[
-            data.PM2_5, data.PM10, data.NO2, data.SO2, data.CO, data.O3,
-            data.temperature, data.humidity, data.wind_speed,
-            data.hour, data.day_of_week, data.month,
-            data.PM10 / (data.PM2_5 + 1),  # PM_ratio
-            (data.PM2_5 + data.PM10 + data.NO2) / 3,  # pollution_index
-            1 if data.day_of_week >= 5 else 0,  # is_weekend
-            1 if data.hour in [7, 8, 9, 17, 18, 19] else 0,  # is_rush_hour
-            data.temperature * data.humidity  # temp_humidity
-        ]])
-        
+        features = np.array(
+            [
+                [
+                    data.PM2_5,
+                    data.PM10,
+                    data.NO2,
+                    data.SO2,
+                    data.CO,
+                    data.O3,
+                    data.temperature,
+                    data.humidity,
+                    data.wind_speed,
+                    data.hour,
+                    data.day_of_week,
+                    data.month,
+                    data.PM10 / (data.PM2_5 + 1),  # PM_ratio
+                    (data.PM2_5 + data.PM10 + data.NO2) / 3,  # pollution_index
+                    1 if data.day_of_week >= 5 else 0,  # is_weekend
+                    1 if data.hour in [7, 8, 9, 17, 18, 19] else 0,  # is_rush_hour
+                    data.temperature * data.humidity,  # temp_humidity
+                ]
+            ]
+        )
+
         # Scale features
-        features_scaled = models['scaler'].transform(features)
-        
+        features_scaled = models["scaler"].transform(features)
+
         # Predict
-        prediction = models['classifier'].predict(features_scaled)[0]
-        probabilities = models['classifier'].predict_proba(features_scaled)[0]
-        
+        prediction = models["classifier"].predict(features_scaled)[0]
+        probabilities = models["classifier"].predict_proba(features_scaled)[0]
+
         # Map to class names
-        class_names = ['Good', 'Moderate', 'Unhealthy', 'Unhealthy for Sensitive', 'Very Unhealthy']
+        class_names = [
+            "Good",
+            "Moderate",
+            "Unhealthy",
+            "Unhealthy for Sensitive",
+            "Very Unhealthy",
+        ]
         predicted_class = class_names[prediction]
-        
+
         # Create probability dict
-        prob_dict = {class_names[i]: float(prob) for i, prob in enumerate(probabilities)}
-        
+        prob_dict = {
+            class_names[i]: float(prob) for i, prob in enumerate(probabilities)
+        }
+
         return {
             "aqi_category": predicted_class,
             "confidence": float(probabilities[prediction]),
             "probabilities": prob_dict,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
-        
+
     except Exception as e:
         logger.error(f"Prediction error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -218,29 +246,40 @@ async def predict_aqi_category(data: AirQualityInput):
 async def predict_pm25_concentration(data: PM25PredictionInput):
     """
     Predict PM2.5 concentration (μg/m³)
-    
+
     Returns the predicted PM2.5 value based on weather and other pollutants
     """
     try:
         # Prepare features
-        features = np.array([[
-            data.NO2, data.SO2, data.CO, data.O3,
-            data.temperature, data.humidity, data.wind_speed,
-            data.hour, data.day_of_week, data.month,
-            1 if data.day_of_week >= 5 else 0,  # is_weekend
-            1 if data.hour in [7, 8, 9, 17, 18, 19] else 0,  # is_rush_hour
-            data.temperature * data.humidity  # temp_humidity
-        ]])
-        
+        features = np.array(
+            [
+                [
+                    data.NO2,
+                    data.SO2,
+                    data.CO,
+                    data.O3,
+                    data.temperature,
+                    data.humidity,
+                    data.wind_speed,
+                    data.hour,
+                    data.day_of_week,
+                    data.month,
+                    1 if data.day_of_week >= 5 else 0,  # is_weekend
+                    1 if data.hour in [7, 8, 9, 17, 18, 19] else 0,  # is_rush_hour
+                    data.temperature * data.humidity,  # temp_humidity
+                ]
+            ]
+        )
+
         # Predict
-        prediction = models['regressor'].predict(features)[0]
-        
+        prediction = models["regressor"].predict(features)[0]
+
         return {
             "predicted_pm25": float(max(0, prediction)),  # Ensure non-negative
             "unit": "μg/m³",
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
-        
+
     except Exception as e:
         logger.error(f"Prediction error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -257,13 +296,13 @@ async def predict_batch(data: List[AirQualityInput]):
             # Use the existing prediction function
             result = await predict_aqi_category(item)
             results.append(result)
-        
+
         return {
             "predictions": results,
             "count": len(results),
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
-        
+
     except Exception as e:
         logger.error(f"Batch prediction error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -271,4 +310,5 @@ async def predict_batch(data: List[AirQualityInput]):
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -1,6 +1,7 @@
 """
 Prefect workflow orchestration for Air Quality ML Pipeline
 """
+
 from prefect import flow, task
 from prefect.task_runners import ConcurrentTaskRunner
 import logging
@@ -19,7 +20,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-@task(name="data-ingestion", retries=PREFECT_RETRIES, retry_delay_seconds=PREFECT_RETRY_DELAY)
+@task(
+    name="data-ingestion",
+    retries=PREFECT_RETRIES,
+    retry_delay_seconds=PREFECT_RETRY_DELAY,
+)
 def ingest_data():
     """
     Task 1: Data Ingestion
@@ -36,7 +41,11 @@ def ingest_data():
         raise
 
 
-@task(name="data-preprocessing", retries=PREFECT_RETRIES, retry_delay_seconds=PREFECT_RETRY_DELAY)
+@task(
+    name="data-preprocessing",
+    retries=PREFECT_RETRIES,
+    retry_delay_seconds=PREFECT_RETRY_DELAY,
+)
 def preprocess_data(df):
     """
     Task 2: Data Preprocessing & Feature Engineering
@@ -45,22 +54,26 @@ def preprocess_data(df):
     logger.info("🔄 Starting data preprocessing...")
     try:
         preprocessor = DataPreprocessor()
-        
+
         # Handle missing values
         df = preprocessor.handle_missing_values(df)
         logger.info("✅ Missing values handled")
-        
+
         # Create features
         df = preprocessor.create_features(df)
         logger.info("✅ Features created")
-        
+
         return df
     except Exception as e:
         logger.error(f"❌ Data preprocessing failed: {str(e)}")
         raise
 
 
-@task(name="prepare-datasets", retries=PREFECT_RETRIES, retry_delay_seconds=PREFECT_RETRY_DELAY)
+@task(
+    name="prepare-datasets",
+    retries=PREFECT_RETRIES,
+    retry_delay_seconds=PREFECT_RETRY_DELAY,
+)
 def prepare_datasets(df):
     """
     Task 3: Prepare datasets for different ML tasks
@@ -69,31 +82,35 @@ def prepare_datasets(df):
     try:
         preprocessor = DataPreprocessor()
         preprocessor.scaler = preprocessor.scaler  # Initialize scaler
-        
+
         # Prepare classification data
         classification_data = preprocessor.prepare_classification_data(df)
         logger.info("✅ Classification dataset prepared")
-        
+
         # Prepare regression data
         regression_data = preprocessor.prepare_regression_data(df)
         logger.info("✅ Regression dataset prepared")
-        
+
         # Prepare clustering data
         clustering_data = preprocessor.prepare_clustering_data(df)
         logger.info("✅ Clustering dataset prepared")
-        
+
         return {
-            'classification': classification_data,
-            'regression': regression_data,
-            'clustering': clustering_data,
-            'label_encoder': preprocessor.label_encoder
+            "classification": classification_data,
+            "regression": regression_data,
+            "clustering": clustering_data,
+            "label_encoder": preprocessor.label_encoder,
         }
     except Exception as e:
         logger.error(f"❌ Dataset preparation failed: {str(e)}")
         raise
 
 
-@task(name="train-models", retries=PREFECT_RETRIES, retry_delay_seconds=PREFECT_RETRY_DELAY)
+@task(
+    name="train-models",
+    retries=PREFECT_RETRIES,
+    retry_delay_seconds=PREFECT_RETRY_DELAY,
+)
 def train_ml_models(data_dict):
     """
     Task 4: Train all ML models
@@ -111,7 +128,11 @@ def train_ml_models(data_dict):
         raise
 
 
-@task(name="evaluate-models", retries=PREFECT_RETRIES, retry_delay_seconds=PREFECT_RETRY_DELAY)
+@task(
+    name="evaluate-models",
+    retries=PREFECT_RETRIES,
+    retry_delay_seconds=PREFECT_RETRY_DELAY,
+)
 def evaluate_models(results):
     """
     Task 5: Evaluate and validate model performance
@@ -119,33 +140,39 @@ def evaluate_models(results):
     logger.info("🔄 Evaluating models...")
     try:
         # Get metrics
-        classification_accuracy = results['classification']['accuracy']
-        regression_r2 = results['regression']['r2']
-        clustering_silhouette = results['clustering']['silhouette_score']
-        
+        classification_accuracy = results["classification"]["accuracy"]
+        regression_r2 = results["regression"]["r2"]
+        clustering_silhouette = results["clustering"]["silhouette_score"]
+
         # Performance summary
         summary = {
-            'classification': {
-                'accuracy': classification_accuracy,
-                'status': 'PASS' if classification_accuracy > 0.70 else 'FAIL'
+            "classification": {
+                "accuracy": classification_accuracy,
+                "status": "PASS" if classification_accuracy > 0.70 else "FAIL",
             },
-            'regression': {
-                'r2_score': regression_r2,
-                'rmse': results['regression']['rmse'],
-                'mae': results['regression']['mae'],
-                'status': 'PASS' if regression_r2 > 0.65 else 'FAIL'
+            "regression": {
+                "r2_score": regression_r2,
+                "rmse": results["regression"]["rmse"],
+                "mae": results["regression"]["mae"],
+                "status": "PASS" if regression_r2 > 0.65 else "FAIL",
             },
-            'clustering': {
-                'silhouette_score': clustering_silhouette,
-                'status': 'PASS' if clustering_silhouette > 0.45 else 'FAIL'
+            "clustering": {
+                "silhouette_score": clustering_silhouette,
+                "status": "PASS" if clustering_silhouette > 0.45 else "FAIL",
             },
-            'overall_status': 'SUCCESS' if all([
-                classification_accuracy > 0.70,
-                regression_r2 > 0.65,
-                clustering_silhouette > 0.45
-            ]) else 'WARNING'
+            "overall_status": (
+                "SUCCESS"
+                if all(
+                    [
+                        classification_accuracy > 0.70,
+                        regression_r2 > 0.65,
+                        clustering_silhouette > 0.45,
+                    ]
+                )
+                else "WARNING"
+            ),
         }
-        
+
         logger.info("✅ Model evaluation completed")
         return summary
     except Exception as e:
@@ -191,14 +218,14 @@ MODEL PERFORMANCE SUMMARY
 PIPELINE COMPLETED SUCCESSFULLY
 {'='*70}
         """
-        
+
         print(report)
         logger.info("✅ Report generated")
-        
+
         # Save report to file
-        with open('pipeline_report.txt', 'w', encoding='utf-8') as f:
+        with open("pipeline_report.txt", "w", encoding="utf-8") as f:
             f.write(report)
-        
+
         return report
     except Exception as e:
         logger.error(f"❌ Report generation failed: {str(e)}")
@@ -208,12 +235,12 @@ PIPELINE COMPLETED SUCCESSFULLY
 @flow(
     name=PREFECT_FLOW_NAME,
     task_runner=ConcurrentTaskRunner(),
-    description="End-to-end ML pipeline for air quality prediction"
+    description="End-to-end ML pipeline for air quality prediction",
 )
 def air_quality_ml_pipeline():
     """
     Main Prefect Flow: Air Quality ML Pipeline
-    
+
     This flow orchestrates the complete ML workflow:
     1. Data Ingestion
     2. Data Preprocessing
@@ -223,47 +250,47 @@ def air_quality_ml_pipeline():
     6. Report Generation
     """
     logger.info("🚀 Starting Air Quality ML Pipeline...")
-    
+
     try:
         # Step 1: Ingest data
         raw_data = ingest_data()
-        
+
         # Step 2: Preprocess data
         processed_data = preprocess_data(raw_data)
-        
+
         # Step 3: Prepare datasets
         datasets = prepare_datasets(processed_data)
-        
+
         # Step 4: Train models
         training_results = train_ml_models(datasets)
-        
+
         # Step 5: Evaluate models
         evaluation_summary = evaluate_models(training_results)
-        
+
         # Step 6: Generate report
         final_report = generate_report(evaluation_summary)
-        
+
         logger.info("✅ Pipeline completed successfully!")
-        
+
         return {
-            'status': 'SUCCESS',
-            'summary': evaluation_summary,
-            'report': final_report
+            "status": "SUCCESS",
+            "summary": evaluation_summary,
+            "report": final_report,
         }
-        
+
     except Exception as e:
         logger.error(f"❌ Pipeline failed: {str(e)}")
         raise
 
 
 if __name__ == "__main__":
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("🌍 AIR QUALITY ML PIPELINE - PREFECT ORCHESTRATION")
-    print("="*70 + "\n")
-    
+    print("=" * 70 + "\n")
+
     # Run the flow
     result = air_quality_ml_pipeline()
-    
-    print("\n" + "="*70)
+
+    print("\n" + "=" * 70)
     print(f"FINAL STATUS: {result['status']}")
-    print("="*70 + "\n")
+    print("=" * 70 + "\n")

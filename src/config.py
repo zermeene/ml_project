@@ -1,6 +1,7 @@
 """
 Configuration file for Air Quality MLOps Pipeline
 """
+
 import os
 from pathlib import Path
 
@@ -24,14 +25,14 @@ CLUSTERING_MODEL_PATH = MODEL_DIR / "city_clustering.pkl"
 SCALER_PATH = MODEL_DIR / "scaler.pkl"
 
 # Feature columns
-POLLUTANT_FEATURES = ['PM2.5', 'PM10', 'NO2', 'SO2', 'CO', 'O3']
-WEATHER_FEATURES = ['temperature', 'humidity', 'wind_speed']
-TEMPORAL_FEATURES = ['hour', 'day_of_week', 'month']
+POLLUTANT_FEATURES = ["PM2.5", "PM10", "NO2", "SO2", "CO", "O3"]
+WEATHER_FEATURES = ["temperature", "humidity", "wind_speed"]
+TEMPORAL_FEATURES = ["hour", "day_of_week", "month"]
 ALL_FEATURES = POLLUTANT_FEATURES + WEATHER_FEATURES + TEMPORAL_FEATURES
 
 # Target columns
-CLASSIFICATION_TARGET = 'AQI_Category'
-REGRESSION_TARGET = 'PM2.5'
+CLASSIFICATION_TARGET = "AQI_Category"
+REGRESSION_TARGET = "PM2.5"
 
 # Model hyperparameters
 RANDOM_STATE = 42
@@ -40,18 +41,18 @@ N_CLUSTERS = 3
 
 # Classifier params
 CLASSIFIER_PARAMS = {
-    'n_estimators': 100,
-    'max_depth': 10,
-    'min_samples_split': 5,
-    'random_state': RANDOM_STATE
+    "n_estimators": 100,
+    "max_depth": 10,
+    "min_samples_split": 5,
+    "random_state": RANDOM_STATE,
 }
 
 # Regressor params
 REGRESSOR_PARAMS = {
-    'n_estimators': 100,
-    'learning_rate': 0.1,
-    'max_depth': 5,
-    'random_state': RANDOM_STATE
+    "n_estimators": 100,
+    "learning_rate": 0.1,
+    "max_depth": 5,
+    "random_state": RANDOM_STATE,
 }
 
 # API configuration
@@ -67,8 +68,8 @@ This API provides real-time predictions for:
 """
 
 # Logging configuration
-LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-LOG_LEVEL = 'INFO'
+LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+LOG_LEVEL = "INFO"
 
 # Prefect configuration
 PREFECT_FLOW_NAME = "air-quality-ml-pipeline"
