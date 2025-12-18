@@ -3,14 +3,15 @@ Data Drift Monitoring
 Detects distribution shifts in production data
 """
 
-import pandas as pd
-import numpy as np
-from scipy import stats
-from typing import Dict, Tuple, List
-import logging
 import json
+import logging
 from datetime import datetime
 from pathlib import Path
+from typing import Dict, List, Tuple
+
+import numpy as np
+import pandas as pd
+from scipy import stats
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

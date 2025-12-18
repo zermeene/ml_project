@@ -2,17 +2,19 @@
 Unit tests for ML models
 """
 
-import pytest
-import numpy as np
 import sys
 from pathlib import Path
+
+import numpy as np
+import pytest
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from models import AQIClassifier, PM25Regressor, CityClustering
+from config import (MIN_CLASSIFIER_ACCURACY, MIN_CLUSTERING_SILHOUETTE,
+                    MIN_REGRESSOR_R2)
+from models import AQIClassifier, CityClustering, PM25Regressor
 from preprocessing import DataPreprocessor
-from config import MIN_CLASSIFIER_ACCURACY, MIN_REGRESSOR_R2, MIN_CLUSTERING_SILHOUETTE
 
 
 class TestMLModels:

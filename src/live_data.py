@@ -3,11 +3,12 @@ Fixed Live Data Fetcher - OpenAQ v3 API
 Works with latest OpenAQ API structure
 """
 
-import requests
-import pandas as pd
 import logging
 from datetime import datetime
 from pathlib import Path
+
+import pandas as pd
+import requests
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

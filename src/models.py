@@ -2,37 +2,26 @@
 Machine Learning models for Air Quality prediction
 """
 
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingRegressor
-from sklearn.cluster import KMeans
-from sklearn.metrics import (
-    accuracy_score,
-    classification_report,
-    confusion_matrix,
-    mean_squared_error,
-    mean_absolute_error,
-    r2_score,
-    silhouette_score,
-)
-import joblib
 import logging
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from pathlib import Path
 import sys
+from pathlib import Path
+
+import joblib
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
+from sklearn.cluster import KMeans
+from sklearn.ensemble import GradientBoostingRegressor, RandomForestClassifier
+from sklearn.metrics import (accuracy_score, classification_report,
+                             confusion_matrix, mean_absolute_error,
+                             mean_squared_error, r2_score, silhouette_score)
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 
-from config import (
-    CLASSIFIER_MODEL_PATH,
-    REGRESSOR_MODEL_PATH,
-    CLUSTERING_MODEL_PATH,
-    CLASSIFIER_PARAMS,
-    REGRESSOR_PARAMS,
-    N_CLUSTERS,
-    MODEL_DIR,
-)
+from config import (CLASSIFIER_MODEL_PATH, CLASSIFIER_PARAMS,
+                    CLUSTERING_MODEL_PATH, MODEL_DIR, N_CLUSTERS,
+                    REGRESSOR_MODEL_PATH, REGRESSOR_PARAMS)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

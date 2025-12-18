@@ -3,14 +3,15 @@ Prefect workflow orchestration for Air Quality ML Pipeline
 WINDOWS COMPATIBLE VERSION
 """
 
-from prefect import flow, task
-from prefect.task_runners import ConcurrentTaskRunner
 import logging
 from datetime import datetime
 
-from preprocessing import DataPreprocessor
-from models import train_all_models
+from prefect import flow, task
+from prefect.task_runners import ConcurrentTaskRunner
+
 from config import PREFECT_FLOW_NAME, PREFECT_RETRIES, PREFECT_RETRY_DELAY
+from models import train_all_models
+from preprocessing import DataPreprocessor
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

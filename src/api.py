@@ -2,29 +2,23 @@
 FastAPI application for Air Quality Intelligence System
 """
 
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
-from typing import List, Dict, Optional
+import logging
+import sys
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Optional
+
 import joblib
 import numpy as np
-import logging
-from datetime import datetime
-
-import sys
-from pathlib import Path
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel, Field
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 
-from config import (
-    API_TITLE,
-    API_VERSION,
-    API_DESCRIPTION,
-    CLASSIFIER_MODEL_PATH,
-    REGRESSOR_MODEL_PATH,
-    CLUSTERING_MODEL_PATH,
-    SCALER_PATH,
-)
+from config import (API_DESCRIPTION, API_TITLE, API_VERSION,
+                    CLASSIFIER_MODEL_PATH, CLUSTERING_MODEL_PATH,
+                    REGRESSOR_MODEL_PATH, SCALER_PATH)
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)

@@ -3,14 +3,15 @@ MLflow Model Registry Integration
 Handles model versioning, tracking, and deployment
 """
 
+import logging
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+import joblib
 import mlflow
 import mlflow.sklearn
 from mlflow.tracking import MlflowClient
-import joblib
-import logging
-from pathlib import Path
-from datetime import datetime
-from typing import Dict, Any, Optional
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -179,12 +180,8 @@ class ModelRegistry:
 
 def register_all_models():
     """Register all trained models with MLflow"""
-    from config import (
-        CLASSIFIER_MODEL_PATH,
-        REGRESSOR_MODEL_PATH,
-        CLASSIFIER_PARAMS,
-        REGRESSOR_PARAMS,
-    )
+    from config import (CLASSIFIER_MODEL_PATH, CLASSIFIER_PARAMS,
+                        REGRESSOR_MODEL_PATH, REGRESSOR_PARAMS)
 
     registry = ModelRegistry()
 

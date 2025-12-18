@@ -2,28 +2,22 @@
 Data preprocessing and feature engineering for air quality data
 """
 
-import pandas as pd
-import numpy as np
-from sklearn.preprocessing import StandardScaler, LabelEncoder
-from sklearn.model_selection import train_test_split
-import joblib
 import logging
-from typing import Tuple
 import sys
 from pathlib import Path
+from typing import Tuple
+
+import joblib
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder, StandardScaler
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 
-from config import (
-    DATA_FILE,
-    SCALER_PATH,
-    ALL_FEATURES,
-    CLASSIFICATION_TARGET,
-    REGRESSION_TARGET,
-    TEST_SIZE,
-    RANDOM_STATE,
-)
+from config import (ALL_FEATURES, CLASSIFICATION_TARGET, DATA_FILE,
+                    RANDOM_STATE, REGRESSION_TARGET, SCALER_PATH, TEST_SIZE)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
