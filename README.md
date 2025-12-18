@@ -13,6 +13,8 @@ A complete **Advanced MLOps pipeline** for air quality monitoring with productio
 - ✅ **Production Deployment** - Docker containerization
 - ✅ **IEEE Format Report** - Publication-ready documentation
 
+  **Local Link**: https://9b2f1fa2e971.ngrok-free.app/
+
 ## 🎯 Project Overview
 
 This system predicts air quality levels and analyzes pollution patterns using real-world environmental data. It demonstrates a production-ready ML pipeline with:
